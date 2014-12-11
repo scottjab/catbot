@@ -20,6 +20,11 @@ func Handler(commands <-chan types.Command) {
 		"catt":     "CatPics",
 		"sitting":  "sittinglikehumans",
 		"tuckedin": "tuckedinkitties",
+		"bigcat": "bigcats",
+		"beard": "beardsandcats",
+		"bacon": "catswithbacon",
+		"catbelly": "catbellies",
+		"tuxedo": "tuxedocats",
 	}
 
 	for command := range commands {
