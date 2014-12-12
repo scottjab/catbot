@@ -26,5 +26,8 @@ func RandomImageFromSubReddit(subreddit string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return results[randInt(0, len(results)-1)].Link
+	if len(results) > 0 {
+		return results[randInt(0, len(results)-1)].Link
+	}
+	return ""
 }

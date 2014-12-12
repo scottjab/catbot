@@ -20,19 +20,21 @@ func Handler(commands <-chan types.Command) {
 		"catt":     "CatPics",
 		"sitting":  "sittinglikehumans",
 		"tuckedin": "tuckedinkitties",
-		"bigcat": "bigcats",
-		"beard": "beardsandcats",
-		"bacon": "catswithbacon",
+		"bigcat":   "bigcats",
+		"beard":    "beardsandcats",
+		"bacon":    "catswithbacon",
 		"catbelly": "catbellies",
-		"tuxedo": "tuxedocats",
+		"tuxedo":   "tuxedocats",
 	}
 
 	for command := range commands {
 		var response = ""
 		if reddit, ok := cmds[command.Cmd]; ok {
 			response = randgur.RandomImageFromSubReddit(reddit)
-			log.Println(command.Line.Target(), ":", response)
-			command.Conn.Privmsg(command.Line.Target(), response)
+			if response != "" {
+				log.Println(command.Line.Target(), ":", response)
+				command.Conn.Privmsg(command.Line.Target(), response)
+			}
 		}
 	}
 }
