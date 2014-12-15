@@ -1,7 +1,7 @@
 package randgur
 
 import (
-	"bitbucket.org/liamstask/go-imgur/imgur"
+	"bitbucket.org/scottjab/go-imgur/imgur"
 	"github.com/kelseyhightower/envconfig"
 	"log"
 	"math/rand"
@@ -27,7 +27,10 @@ func RandomImageFromSubReddit(subreddit string) string {
 		log.Fatal(err)
 	}
 	if len(results) > 0 {
-		return results[randInt(0, len(results)-1)].Link
+		image := results[randInt(0, len(results)-1)]
+		if !image.Nsfw {
+			return image.Link
+		}
 	}
 	return ""
 }
