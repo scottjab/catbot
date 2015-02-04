@@ -30,7 +30,11 @@ func RandomImageFromSubReddit(subreddit string) string {
 		image := results[randInt(0, len(results)-1)]
 		if !image.Nsfw {
 			return image.Link
+		} else {
+			log.Println("NSFW Link found")
 		}
+	} else {
+		log.Println("No results found for subreddit: " + subreddit)
 	}
 	return ""
 }

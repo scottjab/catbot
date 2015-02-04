@@ -31,7 +31,7 @@ func commandDispatcher(conn *irc.Conn, line *irc.Line) {
 
 func handleConfig() types.ConfigSpec {
 	var config types.ConfigSpec
-	err := envconfig.Process("crazycatlady", &config)
+	err := envconfig.Process("catbot", &config)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
