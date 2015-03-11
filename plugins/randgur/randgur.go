@@ -11,6 +11,7 @@ import (
 type ImgurSpec struct {
 	ClientID     string
 	ClientSecret string
+	NoNsfwCheck  bool
 }
 
 func randInt(min int, max int) int {
@@ -28,10 +29,10 @@ func RandomImageFromSubReddit(subreddit string) string {
 	}
 	if len(results) > 0 {
 		image := results[randInt(0, len(results)-1)]
-		if !image.Nsfw {
-			return image.Link
+		if !config.NoNsfwCheck && image.Nsfw {
+			log.Println("NSFW Link found: " + image.Link)
 		} else {
-			log.Println("NSFW Link found")
+			return image.Link
 		}
 	} else {
 		log.Println("No results found for subreddit: " + subreddit)
