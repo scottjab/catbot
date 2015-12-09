@@ -1,14 +1,15 @@
 package types
 
 import (
-	irc "github.com/fluffle/goirc/client"
+	"github.com/nlopes/slack"
 )
 
 type Command struct {
-	Cmd  string
-	Args []string
-	Conn *irc.Conn
-	Line *irc.Line
+	Cmd      string
+	Args     []string
+	Target   string
+	SlackApi *slack.Client
+	SlackRtm *slack.RTM
 }
 
 type ConfigSpec struct {
