@@ -11,6 +11,7 @@ type Config struct {
 	SlackAPIKey string       `json:"SLACK_API_KEY"`
 	Reddit      RedditConfig `json:"reddit"`
 	Debug       bool         `json:"debug"`
+	Prefix      string       `json:"prefix"`
 }
 
 type RedditConfig struct {

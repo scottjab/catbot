@@ -87,6 +87,13 @@ func main() {
 		log.Fatal("No Slack API Key")
 		os.Exit(1)
 	}
+	prefix := "!"
+	if CONFIG.Prefix != "" {
+		log.WithField("prefix", CONFIG.Prefix).Debug("Prefix Found in Config.")
+		prefix = CONFIG.Prefix
+	} else {
+		log.WithField("prefix", prefix).Debug("Using default prefix.")
+	}
 	api := slack.New(CONFIG.SlackAPIKey)
 	api.SetDebug(CONFIG.Debug)
 
@@ -113,7 +120,7 @@ Loop:
 					cmd.SlackRtm = rtm
 					commands <- cmd
 				}
-				if ev.Text != "" && ev.Text[0] == '!' {
+				if ev.Text != "" && string(ev.Text[0]) == prefix {
 					args := strings.Split(ev.Text[1:], " ")
 					log.WithFields(log.Fields{
 						"cmd":    args[0],
