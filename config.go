@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
@@ -27,9 +27,11 @@ func LoadConfig(path string) {
 		log.Println("Unable to open config file at: ", path)
 		os.Exit(1)
 	}
+	log.WithField("configPath", path).Debug("Loading Config")
 	err = json.Unmarshal(file, &CONFIG)
+	log.WithField("configPath", path).Debug("Finished Loading Config")
 	if err != nil {
-		log.Println("Error Parsing config file: ", err)
+		log.WithField("error", err).Fatal("Error Parsing config file: ")
 		os.Exit(1)
 	}
 }

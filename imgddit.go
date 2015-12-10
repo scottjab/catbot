@@ -1,9 +1,9 @@
 package main
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/jzelinskie/geddit"
 	"github.com/patrickmn/go-cache"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -24,16 +24,20 @@ func checkForImage(url string) bool {
 	whitelist := [...]string{"imgur.com", "imgur", "giphy", "flickr", "photobucket", "youtube", "youtu.be", "gif", "gifv", "png", "jpg", "tiff", "webem", "bmp", "flv", "mpg", "mpeg", "avi"}
 	for _, thing := range whitelist {
 		if strings.Contains(url, thing) {
+			log.WithField("url", url).Debug("Found Image")
 			return true
 		}
 	}
+	log.WithField("url", url).Debug("Didn't Find Image")
 	return false
 }
 
 func cleanURL(url string) string {
 	if strings.Contains(url, "imgur") {
+		log.WithField("url", url).Debug("Found imgur url")
 		if url[len(url)-3:] == "gif" {
 			url = url + "v"
+			log.WithField("url", url).Debug("Converting to gifv")
 		}
 	}
 	return url
@@ -41,7 +45,10 @@ func cleanURL(url string) string {
 func GetImage(sub string, cat_cache *cache.Cache) string {
 	var submissions []*geddit.Submission
 	if subs, found := cat_cache.Get(sub); !found {
-		log.Println("No cache for ", sub)
+		log.WithFields(log.Fields{
+			"cache":     false,
+			"subreddit": sub,
+		}).Info("Subreddit not found in cache.")
 		session, err := geddit.NewLoginSession(
 			CONFIG.Reddit.Username,
 			CONFIG.Reddit.Password,
@@ -49,7 +56,7 @@ func GetImage(sub string, cat_cache *cache.Cache) string {
 		)
 
 		if err != nil {
-			log.Println("ERROR: ", err)
+			log.WithField("error", err).Warn("Reddit connection error.")
 			return ""
 		}
 		subOpts := geddit.ListingOptions{
@@ -58,7 +65,11 @@ func GetImage(sub string, cat_cache *cache.Cache) string {
 		submissions, _ = session.SubredditSubmissions(sub, geddit.DefaultPopularity, subOpts)
 		cat_cache.Set(sub, submissions, cache.DefaultExpiration)
 	} else {
-		log.Println("Cache found for ", sub)
+		log.WithFields(log.Fields{
+			"cache":     true,
+			"subreddit": sub,
+		}).Info("Subreddit Found in Cache.")
+
 		submissions = subs.([]*geddit.Submission)
 
 	}
@@ -74,8 +85,14 @@ func GetImage(sub string, cat_cache *cache.Cache) string {
 				noImage = false
 				return s.URL
 			}
+		} else {
+			log.WithField("nsfw", "true").Info("NSFW Link Found.")
 		}
 		if count >= size {
+			log.WithFields(log.Fields{
+				"subreddit": sub,
+				"size":      size,
+			}).Info("I ran out of links")
 			return ""
 		}
 	}
