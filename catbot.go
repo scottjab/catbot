@@ -41,6 +41,7 @@ func getChannelName(channelId string, api *slack.Client) string {
 		channelInfo, err := api.GetChannelInfo(channelId)
 		if err != nil {
 			log.WithField("error", err).Warn("Slack channel ID lookup error")
+			return ""
 		}
 		channelCache.Set(channelId, channelInfo, cache.DefaultExpiration)
 		channelName = channelInfo.Name
