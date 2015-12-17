@@ -3,6 +3,8 @@
   "reddit": {
     "username": "REDDITUSERNAME",
     "password": "REDDITPASSWORD",
+    "appid": "REDDITAPPID",
+    "appsecret": "REDDITAPPSECRET",
     "subreddits": {
       "316cats": "316cats",
       "ahrithecat": "AhriTheCat",

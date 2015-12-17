@@ -17,6 +17,8 @@ type Config struct {
 type RedditConfig struct {
 	Username   string            `json:"username"`
 	Password   string            `json:"password"`
+	AppId      string            `json:"appid"`
+	AppSecret  string            `json:"appsecret"`
 	Subreddits map[string]string `json:"subreddits"`
 }
 
