@@ -8,6 +8,7 @@ type Command struct {
 	Cmd      string
 	Args     []string
 	Target   string
+	User     string
 	SlackApi *slack.Client
 	SlackRtm *slack.RTM
 }

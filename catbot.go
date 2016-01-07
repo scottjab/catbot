@@ -117,6 +117,7 @@ Loop:
 					var cmd types.Command
 					cmd.Cmd = "cat"
 					cmd.Target = ev.Channel
+					cmd.User = ev.User
 					cmd.SlackApi = api
 					cmd.SlackRtm = rtm
 					commands <- cmd
@@ -133,6 +134,7 @@ Loop:
 					cmd.Cmd = args[0]
 					cmd.Args = args[1:]
 					cmd.Target = ev.Channel
+					cmd.User = ev.User
 					cmd.SlackApi = api
 					cmd.SlackRtm = rtm
 					commands <- cmd
