@@ -15,7 +15,7 @@ func Handler(commands <-chan types.Command) {
 	for command := range commands {
 		var response = ""
 		log.WithField("command", command.Cmd).Debug("Possible command.")
-		if command.Cmd == "help" {
+		if command.Cmd == "cathelp" {
 
 			var commands []string
 			commands = make([]string, 1)
