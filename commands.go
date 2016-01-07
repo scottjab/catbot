@@ -5,7 +5,6 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/scottjab/catbot/types"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -18,26 +17,29 @@ func Handler(commands <-chan types.Command) {
 		log.WithField("command", command.Cmd).Debug("Possible command.")
 		if command.Cmd == "help" {
 
-			response = "🐱 Commands: "
 			var commands []string
 			commands = make([]string, 1)
 			for key, _ := range cmds {
 				commands = append(commands, key)
 			}
 			sort.Strings(commands)
-			response = response + strings.Join(commands, ", ")[2:]
-
-			log.WithFields(log.Fields{
-				"command":  "help",
-				"target":   command.User,
-				"response": response,
-			}).Info("Help Message.")
 			_, _, target, err := command.SlackApi.OpenIMChannel(command.User)
 			if err != nil {
-				log.WithError(err).Warn("Could not create IM channel")
+				log.WithError(err).Warn("Could not create IM channel.")
 			}
 			rtm := command.SlackRtm
-			rtm.SendMessage(rtm.NewOutgoingMessage(response, target))
+			rtm.SendMessage(rtm.NewOutgoingMessage("🐱 Commands: ", target))
+
+			for i, cmd := range commands {
+				if i%25 == 1 {
+					rtm.SendMessage(rtm.NewOutgoingMessage(response[:len(response)-2], target))
+					response = ""
+				}
+				response = response + cmd + ", "
+			}
+			if response != "" {
+				rtm.SendMessage(rtm.NewOutgoingMessage(response[:len(response)-2], target))
+			}
 		}
 		if reddit, ok := cmds[command.Cmd]; ok {
 			response = GetImage(reddit, catCache)
