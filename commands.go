@@ -2,14 +2,14 @@ package main
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"github.com/patrickmn/go-cache"
 	"github.com/scottjab/catbot/types"
+	"github.com/scottjab/catlady"
 	"sort"
-	"time"
 )
 
 func Handler(commands <-chan types.Command) {
-	catCache := cache.New(5*time.Minute, 30*time.Second)
+	catLady := catlady.NewCatLady(CONFIG.Reddit.Username, CONFIG.Reddit.Password, CONFIG.Reddit.AppId, CONFIG.Reddit.AppSecret, CONFIG.Reddit.Subreddits, log.GetLevel())
+
 	cmds := CONFIG.Reddit.Subreddits
 	log.WithField("commands", cmds).Debug("commands and subreddits")
 	for command := range commands {
@@ -42,7 +42,7 @@ func Handler(commands <-chan types.Command) {
 			}
 		}
 		if reddit, ok := cmds[command.Cmd]; ok {
-			response = GetImage(reddit, catCache)
+			response = catLady.GetImage(reddit)
 			if response != "" {
 				log.WithFields(log.Fields{
 					"response": response,
