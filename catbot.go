@@ -42,6 +42,13 @@ func init() {
 func findCats() {
 	whitelist := [...]string{"imgur", "imgur", "photobucket"}
 	found := false
+	client, err := pigeon.New(nil)
+	feature := pigeon.NewFeature(pigeon.LabelDetection)
+
+	if err != nil {
+		log.Fatalf("Unable to retrieve vision service: %v\n", err)
+	}
+
 	for event := range findCats {
 		for _, thing := range whitelist {
 			if strings.Contains(event.RawEvent.Text, thing) {
@@ -52,7 +59,9 @@ func findCats() {
 		if found {
 			url := xurls.Relaxed.FindString(url)
 			if url {
-				event.Url = url
+				resp, _ := client.NewAnnotateImageRequest(url, feature)
+				event.Response = resp
+				// TODO: DO SOMETHING WITH THIS.
 				foundCats <- event
 			}
 		}
