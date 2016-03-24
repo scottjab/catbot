@@ -1,19 +1,29 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"github.com/kaneshin/pigeon"
+	"github.com/mvdan/xurls"
 	"github.com/nlopes/slack"
 	"github.com/patrickmn/go-cache"
 	"github.com/scottjab/catbot/types"
-
-	"fmt"
 	"os"
 	"strings"
 	"time"
 )
 
+type DetectionEvent struct {
+	RawEvent *slack.MessageEvent
+	Url      string
+	Response *vision.AnnotateImageRequest
+}
+
 var (
-	commands     = make(chan types.Command)
+	commands  = make(chan types.Command)
+	findCats  = make(chan *DetectionEvent)
+	foundCats = make(chan *DetectionEvent)
+
 	channelCache = cache.New(12*time.Hour, 1*time.Minute)
 	userCache    = cache.New(12*time.Hour, 1*time.Minute)
 )
@@ -26,6 +36,27 @@ func init() {
 		FullTimestamp: true,
 	})
 
+}
+
+// gorutine for finding cats.
+func findCats() {
+	whitelist := [...]string{"imgur", "imgur", "photobucket"}
+	found := false
+	for event := range findCats {
+		for _, thing := range whitelist {
+			if strings.Contains(event.RawEvent.Text, thing) {
+				found = true
+				break
+			}
+		}
+		if found {
+			url := xurls.Relaxed.FindString(url)
+			if url {
+				event.Url = url
+				foundCats <- event
+			}
+		}
+	}
 }
 
 func getChannelName(channelId string, api *slack.Client) string {
@@ -101,12 +132,17 @@ func main() {
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 	go Handler(commands)
+	go findCats()
 Loop:
 	for {
 		select {
 		case msg := <-rtm.IncomingEvents:
 			switch ev := msg.Data.(type) {
 			case *slack.MessageEvent:
+				// Send the event to the findcat thread
+				findCats <- &DetectionEvent{
+					RawEvent: ev,
+				}
 				log.WithFields(log.Fields{
 					"user":    getUserInfo(ev.User, api),
 					"channel": getChannelName(ev.Channel, api),
@@ -122,6 +158,7 @@ Loop:
 					cmd.SlackRtm = rtm
 					commands <- cmd
 				}
+
 				if ev.Text != "" && string(ev.Text[0]) == prefix {
 					args := strings.Split(ev.Text[1:], " ")
 					log.WithFields(log.Fields{
