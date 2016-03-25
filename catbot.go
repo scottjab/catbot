@@ -8,25 +8,26 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/patrickmn/go-cache"
 	"github.com/scottjab/catbot/types"
+	"google.golang.org/api/vision/v1"
+
 	"os"
 	"strings"
 	"time"
 )
 
-type DetectionEvent struct {
-	RawEvent *slack.MessageEvent
-	Url      string
-	Response *vision.AnnotateImageRequest
-}
-
 var (
-	commands  = make(chan types.Command)
-	findCats  = make(chan *DetectionEvent)
-	foundCats = make(chan *DetectionEvent)
+	commands = make(chan types.Command)
+	findCats = make(chan *DetectionEvent)
 
 	channelCache = cache.New(12*time.Hour, 1*time.Minute)
 	userCache    = cache.New(12*time.Hour, 1*time.Minute)
 )
+
+type DetectionEvent struct {
+	ItemRef  *slack.ItemRef
+	Message  string
+	Username string
+}
 
 func init() {
 	if os.Getenv("DEBUG") != "" {
@@ -38,31 +39,78 @@ func init() {
 
 }
 
+func addReact(emoji string, msg *slack.ItemRef, api *slack.Client) {
+	err := api.AddReaction(emoji, *msg)
+	if err != nil {
+		log.WithError(err).Error("reaction failed")
+	}
+
+}
+
+func react(msg *slack.ItemRef, username string, labels *vision.AnnotateImageResponse, api *slack.Client, rtm *slack.RTM) {
+	log.Debug("reacting")
+	//cats := ["cat", "cat2", "kittycat"]
+	//dogs := ["dog", "dog2"]
+	found := false
+	for _, label := range labels.LabelAnnotations {
+		log.WithFields(log.Fields{"desc": label.Description,
+			"score": label.Score}).Debug("Found label")
+		if label.Score > 0.5 {
+			switch label.Description {
+			case "cat":
+				found = true
+				addReact("cat", msg, api)
+			case "dog":
+				found = true
+				addReact("dog", msg, api)
+			case "shiba inu":
+				found = true
+				addReact("doge", msg, api)
+			default:
+			}
+		}
+	}
+	if found {
+		rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprintf("!m %s", username), msg.Channel))
+	}
+
+}
+
 // gorutine for finding cats.
-func findCats() {
-	whitelist := [...]string{"imgur", "imgur", "photobucket"}
+func findCatGifs(lines <-chan *DetectionEvent, api *slack.Client, rtm *slack.RTM) {
+	log.Debug("Starting cat finder")
+	whitelist := [...]string{".jpg", "imgur", "imgur", "photobucket"}
 	found := false
 	client, err := pigeon.New(nil)
 	feature := pigeon.NewFeature(pigeon.LabelDetection)
-
+	feature.MaxResults = 15
 	if err != nil {
 		log.Fatalf("Unable to retrieve vision service: %v\n", err)
 	}
-
-	for event := range findCats {
+	log.Debug("Starting to consume from channel")
+	for event := range lines {
+		log.WithField("message", event.Message).Debug("FOUND ONE")
 		for _, thing := range whitelist {
-			if strings.Contains(event.RawEvent.Text, thing) {
+			if strings.Contains(event.Message, thing) {
 				found = true
 				break
 			}
 		}
 		if found {
-			url := xurls.Relaxed.FindString(url)
-			if url {
-				resp, _ := client.NewAnnotateImageRequest(url, feature)
-				event.Response = resp
-				// TODO: DO SOMETHING WITH THIS.
-				foundCats <- event
+			log.Debug("found link")
+			url := xurls.Relaxed.FindString(event.Message)
+			log.WithField("url", url).Debug("Found url")
+			if url != "" {
+				req, err := client.NewBatchAnnotateImageRequest([]string{url}, feature)
+				if err != nil {
+					log.WithError(err).Error("Shits fucked yo")
+				}
+
+				res, err := client.ImagesService().Annotate(req).Do()
+				if err != nil {
+					log.WithError(err).Warn("google hates me")
+				}
+				react(event.ItemRef, event.Username, res.Responses[0], api, rtm)
 			}
 		}
 	}
@@ -141,7 +189,8 @@ func main() {
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 	go Handler(commands)
-	go findCats()
+	go findCatGifs(findCats, api, rtm)
+
 Loop:
 	for {
 		select {
@@ -149,9 +198,14 @@ Loop:
 			switch ev := msg.Data.(type) {
 			case *slack.MessageEvent:
 				// Send the event to the findcat thread
+				log.Debug("Sending event to finder")
 				findCats <- &DetectionEvent{
-					RawEvent: ev,
-				}
+					ItemRef: &slack.ItemRef{Channel: ev.Channel,
+						Timestamp: ev.Timestamp,
+					},
+					Username: getUserInfo(ev.User, api),
+					Message:  ev.Text}
+				log.Debug("Sent log to finder")
 				log.WithFields(log.Fields{
 					"user":    getUserInfo(ev.User, api),
 					"channel": getChannelName(ev.Channel, api),
